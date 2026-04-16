@@ -1,12 +1,9 @@
-mod dataset;
-mod bpe;
-mod common;
+mod tokenizer;
 use std::collections::HashMap;
 use std::time::Instant;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
-use crate::dataset::get_dataset;
-use crate::bpe::{ encode, decode, train };
+use crate::tokenizer::{ encode, decode, train, load_ids_from_file, get_dataset };
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -76,14 +73,17 @@ fn main() {
         );
         (model.merges, model.vocab)
     } else {
-        // Only load text if we need to train
-        let text = if std::path::Path::new(file_path).exists() {
-            crate::dataset::get_text_dataset(file_path)
+        // Load IDs directly from file instead of loading whole text into a String
+        let (u32_ids, original_len) = if std::path::Path::new(file_path).exists() {
+            let ids = load_ids_from_file(file_path).expect("Failed to load text file");
+            let len = ids.len();
+            (ids, len)
         } else {
             println!("Warning: '{}' not found. Using default dataset.", file_path);
-            get_dataset()
+            let text = get_dataset();
+            let len = text.len();
+            (tokenizer::common::bytes_to_u32(text.as_bytes()), len)
         };
-        let text_ref: &str = &text;
 
         println!("Training with vocab_size={} (Merges={})...", vocab_size, num_merges);
         let now = Instant::now();
@@ -92,13 +92,12 @@ fn main() {
         let mut merges: HashMap<(u32, u32), u32> = HashMap::new();
         let mut vocab: HashMap<u32, String> = HashMap::new();
 
-        let u32_ids = train(text_ref, &mut merges, &mut vocab, &mut counts, vocab_size);
+        let trained_ids = train(u32_ids, &mut merges, &mut vocab, &mut counts, vocab_size);
 
         let elapsed = now.elapsed();
         println!("Training Elapsed: {:.2?}", elapsed);
 
-        let original_len = text.as_bytes().len();
-        let tokenized_len = u32_ids.len();
+        let tokenized_len = trained_ids.len();
 
         println!(
             "Compression {}/{} = {:.3}x",

@@ -2,3 +2,4 @@
 .DS_Store
 /example/.godot
 *.uid
+*.dll

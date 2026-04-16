@@ -171,8 +171,14 @@ jobs:
         run: |
           new_version=$(grep '^version =' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
-          git show HEAD~1:Cargo.toml > old_Cargo.toml
-          old_version=$(grep '^version =' old_Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
+          
+          # Try to get the version from the previous commit, handle if file doesn't exist yet
+          if git show HEAD~1:Cargo.toml > old_Cargo.toml 2>/dev/null; then
+            old_version=$(grep '^version =' old_Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
+          else
+            old_version="none"
+          fi
+          
           if [ "$new_version" != "$old_version" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
           else
