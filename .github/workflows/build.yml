@@ -1,0 +1,195 @@
+name: jobs/build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: Build - ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: libIAgo.so
+            final_name: IAgo.so
+
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: IAgo.dll
+            final_name: IAgo.dll
+
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+            bin: libIAgo.dylib
+            final_name: IAgo_x64.dylib
+
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            bin: libIAgo.dylib
+            final_name: IAgo_arm.dylib
+
+          - runner: ubuntu-latest
+            target: aarch64-linux-android
+            bin: libIAgo.so
+            final_name: libIAgo.so
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cargo-ndk
+        if: matrix.target == 'aarch64-linux-android'
+        run: |
+          cargo install cargo-ndk
+          rustup target add aarch64-linux-android
+
+      - name: Setup Android NDK
+        if: matrix.target == 'aarch64-linux-android'
+        uses: nttld/setup-ndk@v1.5.0
+        with:
+          ndk-version: r27c
+
+      - name: Setup Java JDK
+        if: matrix.target == 'aarch64-linux-android'
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+          java-package: jdk
+
+      - name: Build rust binary
+        if: "!contains(matrix.target, 'android')"
+        run: cargo build --verbose --locked --release --target ${{ matrix.target }}
+
+      - name: Build rust binary for android
+        if: matrix.target == 'aarch64-linux-android'
+        run: cargo ndk -t ${{ matrix.target }} --platform 34 build --release --verbose --locked
+
+      - name: Rename binary to final_name
+        shell: bash
+        run: |
+          RELEASE_DIR="target/${{ matrix.target }}/release"
+          if [ "${{ matrix.target }}" = "aarch64-linux-android" ]; then
+            SRC_FILE="$RELEASE_DIR/libIAgo.so"
+          elif [ "${{ matrix.target }}" = "x86_64-pc-windows-msvc" ]; then
+            SRC_FILE="$RELEASE_DIR/IAgo.dll"
+          elif [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
+            SRC_FILE="$RELEASE_DIR/libIAgo.so"
+          else
+            SRC_FILE="$RELEASE_DIR/${{ matrix.bin }}"
+          fi
+
+          DEST_FILE="$RELEASE_DIR/${{ matrix.final_name }}"
+
+          echo "Checking for source file: $SRC_FILE"
+          if [ ! -f "$SRC_FILE" ]; then
+            echo "Searching for binary in $RELEASE_DIR..."
+            ls -R "$RELEASE_DIR"
+            # Fallback if the path is slightly different
+            ACTUAL_FILE=$(find "$RELEASE_DIR" -name "${{ matrix.bin }}" | head -n 1)
+            if [ -n "$ACTUAL_FILE" ]; then
+              SRC_FILE="$ACTUAL_FILE"
+              echo "Found file at: $SRC_FILE"
+            fi
+          fi
+
+          if [ -f "$SRC_FILE" ]; then
+            if [ "$SRC_FILE" != "$DEST_FILE" ]; then
+              mv "$SRC_FILE" "$DEST_FILE"
+              echo "Moved $SRC_FILE to $DEST_FILE"
+            else
+              echo "Skipping rename: source and destination are the same ($SRC_FILE)"
+            fi
+          else
+            echo "ERROR: Source file $SRC_FILE not found!"
+            exit 1
+          fi
+
+      - name: Upload rust binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.final_name }}
+          path: target/${{ matrix.target }}/release/${{ matrix.final_name }}
+
+  package:
+    runs-on: macos-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: example/bin
+          merge-multiple: true
+
+      - name: Building a macOS universal lib
+        run: lipo -create -output example/bin/IAgo.dylib example/bin/IAgo_x64.dylib example/bin/IAgo_arm.dylib
+
+      - name: Remove individual macOS binaries
+        run: rm example/bin/IAgo_x64.dylib example/bin/IAgo_arm.dylib
+
+      - name: Copy license
+        run: cp LICENSE example/bin/ || true
+
+      - name: Create zip archive
+        run: zip -r IAgo_godot.zip example
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: IAgo_godot.zip
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: package
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for version change
+        id: version_check
+        run: |
+          new_version=$(grep '^version =' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          git show HEAD~1:Cargo.toml > old_Cargo.toml
+          old_version=$(grep '^version =' old_Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
+          if [ "$new_version" != "$old_version" ]; then
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download package artifact
+        if: steps.version_check.outputs.version_changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: .
+
+      - name: Create Release
+        if: steps.version_check.outputs.version_changed == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version_check.outputs.new_version }}
+          files: IAgo_godot.zip
+          generate_release_notes: true

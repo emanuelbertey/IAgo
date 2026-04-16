@@ -1,0 +1,11 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = "4.2"
+
+[libraries]
+windows.debug.x86_64 = "res://bin/IAgo.dll"
+windows.release.x86_64 = "res://bin/IAgo.dll"
+macos.debug = "res://bin/IAgo.dylib"
+macos.release = "res://bin/IAgo.dylib"
+linux.debug.x86_64 = "res://bin/IAgo.so"
+linux.release.x86_64 = "res://bin/IAgo.so"
