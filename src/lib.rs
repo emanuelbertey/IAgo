@@ -6,8 +6,12 @@ use serde::{Serialize, Deserialize};
 
 
 
+extern crate xlstm;
+
 pub mod tokenizer;
 pub use tokenizer::{bpe, common, dataset};
+
+mod xlstm_large_node;
 
 
 struct RustTokenizer;
