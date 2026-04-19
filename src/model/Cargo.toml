@@ -7,9 +7,9 @@ edition = "2021"
 path = "lib.rs"
 
 [dependencies]
-burn = { version = "0.20.1", features = ["ndarray", "autodiff", "train"] }
-burn-autodiff = "0.20.1"
-burn-ndarray = "0.20.1"
+burn = { version = "0.20.1", default-features = false, features = ["ndarray", "autodiff", "train"] }
+burn-autodiff = { version = "0.20.1", default-features = false }
+burn-ndarray = { version = "0.20.1", default-features = false }
 tokenizers = "0.20"
 rand = "0.9"
 num-traits = "0.2"

@@ -47,7 +47,9 @@ size_flags_horizontal = 3
 text = "Entrenar Modelo"
 
 [node name="XLSTMLargeChat" type="XLSTMLargeChat" parent="." unique_id=1715614392]
-num_epochs = 1
+num_blocks = 3
+num_epochs = 30
 model_file = "user://large_model.mpk"
 tokenizer_path = "user://tokenizer.json"
 script = ExtResource("1_2pabi")
+gen_length = 96
