@@ -8,6 +8,7 @@ use burn::optim::{AdamConfig, Optimizer, GradientsParams};
 use burn::optim::decay::WeightDecayConfig;
 use burn::nn::loss::CrossEntropyLossConfig;
 use burn::grad_clipping::GradientClippingConfig;
+use burn::module::AutodiffModule;
 use burn_autodiff::Autodiff;
 
 use std::error::Error;
@@ -342,13 +343,13 @@ impl XLSTMLargeChat {
         let seed_ids = tokenizer.encode(&seed_text.to_string());
         if seed_ids.is_empty() { return "".into(); }
 
-        let mut current_state = model.empty_state(1, &self.device);
+        let mut current_state = model.valid().empty_state(1, &self.device);
         let input = Tensor::<MyBackend, 2, Int>::from_data(
             TensorData::new(seed_ids.iter().map(|&id| id as i64).collect(), [1, seed_ids.len()]), 
             &self.device
         );
         
-        let (logits, next_state) = model.forward(input, None);
+        let (logits, next_state) = model.valid().forward(input.valid(), None);
         current_state = next_state.expect("State error");
 
         let [_, s_len, v_dim] = logits.dims();
@@ -357,7 +358,7 @@ impl XLSTMLargeChat {
         let mut result_ids = Vec::new();
         let mut history = seed_ids.clone();
 
-        let mut next_id = sample_from_logits::<MyBackend>(last_logits, self.temperature, 20, 1.0, self.repetition_penalty, &history);
+        let mut next_id = sample_from_logits(last_logits, self.temperature, 20, 1.0, self.repetition_penalty, &history);
 
         for _ in 0..length {
             if let Some(token) = tokenizer.id_to_token(next_id) {
@@ -369,11 +370,11 @@ impl XLSTMLargeChat {
             if history.len() > 64 { history.remove(0); }
 
             let input = Tensor::<MyBackend, 2, Int>::from_data(TensorData::new(vec![next_id as i64], [1, 1]), &self.device);
-            let (logits, next_state) = model.forward(input, Some(current_state));
+            let (logits, next_state) = model.valid().forward(input.valid(), Some(current_state));
             current_state = next_state.expect("State error");
             
             let [_, _, v] = logits.dims();
-            next_id = sample_from_logits::<MyBackend>(logits.reshape([1, v]), self.temperature, 20, 1.0, self.repetition_penalty, &history);
+            next_id = sample_from_logits(logits.reshape([1, v]), self.temperature, 20, 1.0, self.repetition_penalty, &history);
         }
 
         GString::from(&tokenizer.decode(&result_ids))
