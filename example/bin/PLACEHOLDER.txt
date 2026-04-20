@@ -1,2 +1,0 @@
-Este directorio debe contener el archivo tokenizer.dll compilado desde Rust para que el ejemplo funcione.
-Puedes copiarlo manualmente desde target/debug/tokenizer.dll o configurar un script de construcción.
