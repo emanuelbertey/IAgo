@@ -74,10 +74,13 @@ jobs:
       - name: Build rust binary
         if: "!contains(matrix.target, 'android')"
         run: cargo build --verbose --locked --release --target ${{ matrix.target }}
-
+   
       - name: Build rust binary for android
         if: matrix.target == 'aarch64-linux-android'
-        run: cargo ndk -t ${{ matrix.target }} --platform 34 build --release --verbose --locked
+        # Metemos el RUSTFLAGS antes del comando para que el linker no borre las clases
+        run: |
+          RUSTFLAGS="-C link-arg=-Wl,--export-dynamic" \
+          cargo ndk -t ${{ matrix.target }} --platform 34 build --release --verbose --locked
 
       - name: Rename binary to final_name
         shell: bash
