@@ -30,8 +30,8 @@ burn-wgpu = "0.20.1"
 
 [profile.release]
 opt-level = 3
-lto = true
+lto = "thin"          # Cambiá 'true' por 'thin'
 codegen-units = 1
-#panic = "abort"
-strip = false
+strip = false         # Mantenelo en false para que no borre la tabla de símbolos
+panic = "unwind"      # Android a veces se lleva mal con el abort en las libs
 
