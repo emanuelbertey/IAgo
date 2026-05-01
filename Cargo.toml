@@ -17,7 +17,7 @@ burn = { version = "0.20.1", default-features = false, features = ["ndarray", "a
 burn-autodiff = { version = "0.20.1", default-features = false }
 burn-ndarray = { version = "0.20.1", default-features = false }
 tokenizers = "0.20"
-rand = "0.9"
+rand = "0.10"
 num-traits = "0.2"
 derive_more = "0.99"
 xlstm = { path = "src/model" }
