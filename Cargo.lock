@@ -12,7 +12,7 @@ dependencies = [
  "burn-cuda",
  "burn-ndarray",
  "burn-wgpu",
- "derive_more 0.99.20",
+ "derive_more",
  "godot",
  "num-traits",
  "rand 0.9.4",
@@ -697,12 +697,6 @@ checksum = "136d3e02915a2cea4d74caa8681e2d44b1c3254bdbf17d11d41d587ff858832c"
 
 [[package]]
 name = "convert_case"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
-
-[[package]]
-name = "convert_case"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
@@ -870,7 +864,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "derive-new",
- "derive_more 2.1.1",
+ "derive_more",
  "dirs",
  "embassy-futures",
  "embassy-time",
@@ -908,7 +902,7 @@ dependencies = [
  "cubecl-macros",
  "cubecl-runtime",
  "derive-new",
- "derive_more 2.1.1",
+ "derive_more",
  "enumset",
  "float-ord",
  "half",
@@ -1021,7 +1015,7 @@ dependencies = [
  "cubecl-common",
  "cubecl-macros-internal",
  "derive-new",
- "derive_more 2.1.1",
+ "derive_more",
  "enumset",
  "float-ord",
  "fnv",
@@ -1092,7 +1086,7 @@ dependencies = [
  "cubecl-common",
  "cubecl-ir",
  "derive-new",
- "derive_more 2.1.1",
+ "derive_more",
  "dirs",
  "enumset",
  "foldhash 0.1.5",
@@ -1143,7 +1137,7 @@ dependencies = [
  "cubecl-ir",
  "cubecl-runtime",
  "derive-new",
- "derive_more 2.1.1",
+ "derive_more",
  "half",
  "hashbrown 0.15.5",
  "log",
@@ -1389,19 +1383,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab63b0e2bf4d5928aff72e83a7dace85d7bba5fe12dcc3c5a572d78caffd3f3c"
 dependencies = [
  "derive_builder_core",
- "syn",
-]
-
-[[package]]
-name = "derive_more"
-version = "0.99.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6edb4b64a43d977b8e99788fe3a04d483834fba1215a7e02caa415b626497f7f"
-dependencies = [
- "convert_case 0.4.0",
- "proc-macro2",
- "quote",
- "rustc_version",
  "syn",
 ]
 

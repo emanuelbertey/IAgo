@@ -19,7 +19,7 @@ burn-ndarray = { version = "0.20.1", default-features = false }
 tokenizers = "0.20"
 rand = "0.9"
 num-traits = "0.2"
-derive_more = "0.99"
+derive_more = "2.1"
 xlstm = { path = "src/model" }
 
 [target.'cfg(any(windows, target_os = "linux", target_os = "macos"))'.dependencies]
